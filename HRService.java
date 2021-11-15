@@ -6,70 +6,135 @@
 package com.mycompany.hotelreservation.model.service;
 
 
+import com.google.api.core.ApiFuture;
+import com.google.cloud.firestore.CollectionReference;
+import com.google.cloud.firestore.DocumentReference;
+import com.google.cloud.firestore.Query;
+import com.google.cloud.firestore.QueryDocumentSnapshot;
+import com.google.cloud.firestore.QuerySnapshot;
 import com.mycompany.hotelreservation.model.HotelInfo;
 import com.mycompany.hotelreservation.model.Reservation;
-import com.mycompany.hotelreservation.model.Room;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
+import java.util.Random;
+import java.util.concurrent.ExecutionException;
 
 /**
  *
  * @author kshaw
  */
 
-public class HRService {
+public class HRService extends DBConnection {
     
     private final ArrayList<Reservation> list = new ArrayList<>();
     
     public HRService(){
-        
-        ArrayList<Room> r1 = new ArrayList<>();
-        HotelInfo h1 = new HotelInfo();
-        
-        r1.add(new Room("floor 1", 444, "King"));
-        h1.name = "Kalen Shaw";
-        h1.address = "new address";
-        h1.phone = "888-888-8888";
-        
-        list.add(new Reservation(114,12444,new Date(System.currentTimeMillis()), "PAID", "plat", new Date(System.currentTimeMillis()), new Date(System.currentTimeMillis()), "Kalen Shaw", 2, 0, h1, "sample")); 
-        
-        
-       
+        super();        
     }
     
-    public Reservation findbyconfNo(int confirmationNo){
-            
-            for (int i = 0; i < list.size(); ++i){
-            if(list.get(i).getConfirmationNo() == confirmationNo)
-                return list.get(i);
-        }
+     public Reservation findByconfNo(int confirmationNo) throws InterruptedException, ExecutionException{
+    
+	//refernce to the collection(table)
+	CollectionReference  po = db.collection("Reservation");
+	//query where clause
+	Query query = po.whereEqualTo("confirmationNo", confirmationNo);
+	
+	
+	ApiFuture<QuerySnapshot> querySnapshot = query.get();
+  
+	List<QueryDocumentSnapshot> documents = querySnapshot.get().getDocuments();
+	if(documents.size() == 1)
+		return documents.get(0).toObject(Reservation.class);
+        
         return null;
     }
     
-        public Reservation findbycustID(int customerId){
-            
-            for (int i = 0; i < list.size(); ++i){
-            if(list.get(i).getCustomerId() == customerId)
-                return list.get(i);
-        }
+        public Reservation findBycustId(int customerId) throws InterruptedException, ExecutionException{
+    
+	//refernce to the collection(table)
+	CollectionReference  po = db.collection("Reservation");
+	//query where clause
+	Query query = po.whereEqualTo("id", customerId);
+	
+	
+	ApiFuture<QuerySnapshot> querySnapshot = query.get();
+  
+	List<QueryDocumentSnapshot> documents = querySnapshot.get().getDocuments();
+	if(documents.size() == 1)
+		return documents.get(0).toObject(Reservation.class);
+        
         return null;
     }
-        public Reservation findbyplat(String platform){
-            
-            for (int i = 0; i < list.size(); ++i){
-            if(list.get(i).getPlatform().equals(platform))
-                return list.get(i);
-        }
+        
+         public Reservation findByplat(String platform) throws InterruptedException, ExecutionException{
+    
+	//refernce to the collection(table)
+	CollectionReference  po = db.collection("Reservation");
+	//query where clause
+	Query query = po.whereEqualTo("platform", platform);
+	
+	
+	ApiFuture<QuerySnapshot> querySnapshot = query.get();
+  
+	List<QueryDocumentSnapshot> documents = querySnapshot.get().getDocuments();
+	if(documents.size() == 1)
+		return documents.get(0).toObject(Reservation.class);
+        
         return null;
     }
-        public Reservation findbypaystat(String paymentStatus){
-            
-            for (int i = 0; i < list.size(); ++i){
-            if(list.get(i).getPaymentStatus().equals(paymentStatus))
-                return list.get(i);
-        }
+         public Reservation findBypaystat(String paymentStatus) throws InterruptedException, ExecutionException{
+    
+	//refernce to the collection(table)
+	CollectionReference  po = db.collection("Reservation");
+	//query where clause
+	Query query = po.whereEqualTo("paymentStatus", paymentStatus);
+	
+	
+	ApiFuture<QuerySnapshot> querySnapshot = query.get();
+  
+	List<QueryDocumentSnapshot> documents = querySnapshot.get().getDocuments();
+	if(documents.size() == 1)
+		return documents.get(0).toObject(Reservation.class);
+        
         return null;
     }
+        public String createReservation( int confirmationNo, String paymentStatus, 
+                String platform, Date checkInDate, Date checkOutDate, 
+                String reservationName, int adultGuests, int minorGuests, 
+                HotelInfo hotelinformation, String cancellationPolicy) throws ParseException, InterruptedException, ExecutionException{
+  
+	//create date format that doesn't include time
+	SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd 00:00:00");
+	//get the current date as a string
+	String now = formatter.format(new Date(System.currentTimeMillis()));
+
+	//create submitted date
+	Date completed = formatter.parse(now);
+  
+	// create instance of Random class
+	Random rand = new Random();
+
+	// Generate random integers in range 0 to 9999
+	int customerId = rand.nextInt(10000);
+	
+	
+	//create purchase order
+	Reservation newRes = new Reservation(customerId, confirmationNo, completed, paymentStatus, 
+                platform, checkInDate, checkOutDate, reservationName, adultGuests, minorGuests, hotelinformation, cancellationPolicy);
+	//save values to database
+	ApiFuture<DocumentReference> future = db.collection("Reservation").add(newRes);
+	
+	//retrieve newly created document(row)
+	DocumentReference doc = future.get();
+   
+    //return the document id;
+	return doc.getId();
+	
+ 
+}
     }
     
         
